@@ -15,9 +15,12 @@ class agent(nn.Module):
     x = F.relu(self.layer2(x))
     x = self.output(x)
     return x
-  def choice(self,state,epsilon):
+  def choice(self,state,epsilon,temp):
     if random.random()>epsilon:
       with torch.no_grad():
-        return torch.argmax(self.forward(state)).item()
+        q_values = self.forward(state)
+        # softmax with temperature
+        probs = torch.softmax(q_values / temp, dim=-1)
+        return torch.multinomial(probs, 1).item()
     else:
       return random.randint(0,3)
