@@ -9,7 +9,7 @@ import csv
 
 training = False
 
-session = 7
+session = 10
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
 env = gymnasium.make("LunarLander-v3")
@@ -20,15 +20,15 @@ offline_network = A.agent().to(device)
 
 gamma = 0.99
 epsilon = 1
-decay = 0.9995
+decay = 0.9997
 epsilon_min = 0.09
 
 temp = 2.0
-min_temp = .1
-temp_decay = .9995
+min_temp = .2
+temp_decay = .99973
 
 max_ep = 10000
-max_steps = 750
+max_steps = 500
 total_steps = 0
 total_overall_steps = 0
 best_avg_reward = 0
@@ -73,6 +73,13 @@ if training:
             #t1 = time.time()
             next_state, reward, terminated, truncated,_= env.step(action)
             #t2 = time.time()
+            reward -= 0.5 * abs(next_state[0])
+
+            if next_state[3] < -0.3:
+                reward -= 1.0 * abs(next_state[3])
+
+            if next_state[1] < 0.5:
+                reward -= 0.5 * abs(next_state[2])
             '''#angle penalty that discourages the excessive changes in angle
             angular_vel = next_state[5]
             reward -= 0.3 * abs(angular_vel)
@@ -88,10 +95,13 @@ if training:
             if distance < 1.0 and vel_y > -1.0:
                 reward += 1'''
 
+            reward = max(min(reward, 10), -10)
+
             total_reward += reward
             experiences.push(state,action,next_state,reward,terminated)
             state = next_state
             state_tensor = torch.tensor(state, dtype=torch.float32).to(device)
+
             if len(experiences)>1000:
                 exp_batch = experiences.sample(64)
                 optimizer.zero_grad()
